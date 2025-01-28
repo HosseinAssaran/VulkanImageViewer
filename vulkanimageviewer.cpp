@@ -66,14 +66,18 @@ VulkanRenderer::VulkanRenderer(QVulkanWindow *w, const QString &fileName)
 }
 
 void VulkanRenderer::setScale(const float scale) {  m_scale = scale; }
+void VulkanRenderer::setPanning(const float panX, const float panY) {  m_panX = panX; m_panY = panY; }
+
 
 // Update the projection matrix based on the current zoom factor
 void VulkanWindow::updateProjectionMatrix()
 {
     if (m_renderer) {
         m_renderer->setScale(m_zoomFactor); // Use the setter to update the projection matrix
+        m_renderer->setPanning(m_panX, m_panY);
     }
     qDebug() << "Zoom Factor Updated:" << m_zoomFactor;
+    qDebug() << "Panning Updated:" << m_panX << ", " << m_panY;
 }
 
 // Handle key press events
@@ -108,6 +112,40 @@ void VulkanWindow::wheelEvent(QWheelEvent *event)
     } else {
         QVulkanWindow::wheelEvent(event); // Pass the event to the base class
     }
+}
+
+void VulkanWindow::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        m_isPanning = true;
+        m_lastMousePos = event->pos();
+    }
+    QVulkanWindow::mousePressEvent(event); // Ensure the base class functionality is also called
+}
+
+void VulkanWindow::mouseMoveEvent(QMouseEvent *event)
+{
+    if (m_isPanning) {
+        // Calculate the difference in position
+        QPoint delta = event->pos() - m_lastMousePos;
+        m_panX += delta.x() * 0.01f; // Pan scale factor
+        m_panY -= delta.y() * 0.01f; // Reverse Y-axis to match the window coordinates
+
+        // Update the last mouse position
+        m_lastMousePos = event->pos();
+
+        // Update the projection matrix with the new pan offsets
+        updateProjectionMatrix();
+    }
+    QVulkanWindow::mouseMoveEvent(event);
+}
+
+void VulkanWindow::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        m_isPanning = false;
+    }
+    QVulkanWindow::mouseReleaseEvent(event); // Ensure the base class functionality is also called
 }
 
 VkShaderModule VulkanRenderer::createShader(const QString &name)
@@ -830,6 +868,7 @@ void VulkanRenderer::startNextFrame()
         qFatal("Failed to map memory: %d", err);
     QMatrix4x4 m = m_proj;
     m.scale(m_scale);
+    m.translate(m_panX, m_panY);
     memcpy(p, m.constData(), 16 * sizeof(float));
     m_devFuncs->vkUnmapMemory(dev, m_bufMem);
 
