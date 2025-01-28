@@ -53,7 +53,7 @@
 #include <QVulkanInstance>
 #include <QLoggingCategory>
 #include <QFileDialog>
-#include "hellovulkantexture.h"
+#include "vulkanimageviewer.h"
 
 Q_LOGGING_CATEGORY(lcVk, "qt.vulkan")
 
