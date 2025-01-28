@@ -49,15 +49,30 @@
 ****************************************************************************/
 
 #include <QGuiApplication>
+#include <QApplication>
 #include <QVulkanInstance>
 #include <QLoggingCategory>
+#include <QFileDialog>
 #include "hellovulkantexture.h"
 
 Q_LOGGING_CATEGORY(lcVk, "qt.vulkan")
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
+
+    QString fileName = QFileDialog::getOpenFileName(
+        nullptr,
+        "Open File",
+        "",
+        "Images (*.png *.jpg *.bmp);;All Files (*)"
+        );
+
+    if (!fileName.isEmpty()) {
+        qDebug() << "Selected file:" << fileName;
+    } else {
+        qDebug() << "No file selected.";
+    }
 
     QLoggingCategory::setFilterRules(QStringLiteral("qt.vulkan=true"));
 
@@ -67,7 +82,7 @@ int main(int argc, char *argv[])
     if (!inst.create())
         qFatal("Failed to create Vulkan instance: %d", inst.errorCode());
 
-    VulkanWindow w;
+    VulkanWindow w(fileName);
     w.setVulkanInstance(&inst);
     if (QCoreApplication::arguments().contains(QStringLiteral("--srgb")))
         w.setPreferredColorFormats(QList<VkFormat>() << VK_FORMAT_B8G8R8A8_SRGB);
