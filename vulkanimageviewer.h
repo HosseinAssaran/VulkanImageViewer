@@ -111,7 +111,7 @@ private:
     // Zoom variables
     bool m_ctrlPressed = false;   // Track if Ctrl is pressed
     float m_zoomFactor = 1.0f;    // Current zoom factor
-    const float m_zoomStep = 0.1f; // Zoom increment step
+    float m_zoomStep = 0.1f; // Zoom increment step
 
     // For panning
     bool m_isPanning = false;
