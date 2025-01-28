@@ -32,7 +32,7 @@
 class VulkanRenderer : public QVulkanWindowRenderer
 {
 public:
-    VulkanRenderer(QVulkanWindow *w);
+    VulkanRenderer(QVulkanWindow *w, const QString &fileName);
 
     void initResources() override;
     void initSwapChainResources() override;
@@ -41,6 +41,8 @@ public:
 
     void startNextFrame() override;
 
+private:
+    QString m_fileName;  // Store file name
 private:
     VkShaderModule createShader(const QString &name);
     bool createTexture(const QString &name);
@@ -82,7 +84,10 @@ private:
 class VulkanWindow : public QVulkanWindow
 {
 public:
+    VulkanWindow(const QString &fileName);  // Constructor to accept fileName
     QVulkanWindowRenderer *createRenderer() override;
+private:
+    QString m_fileName;  // Store file name in the VulkanWindow class
 };
 
 #endif // HELLOVULKANTEXTURE_H

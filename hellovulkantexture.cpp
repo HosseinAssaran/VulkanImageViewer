@@ -49,13 +49,18 @@ static inline VkDeviceSize aligned(VkDeviceSize v, VkDeviceSize byteAlign)
     return (v + byteAlign - 1) & ~(byteAlign - 1);
 }
 
-QVulkanWindowRenderer *VulkanWindow::createRenderer()
+// Constructor implementation
+VulkanWindow::VulkanWindow(const QString &fileName) : m_fileName(fileName)
 {
-    return new VulkanRenderer(this);
 }
 
-VulkanRenderer::VulkanRenderer(QVulkanWindow *w)
-    : m_window(w)
+QVulkanWindowRenderer *VulkanWindow::createRenderer()
+{
+    return new VulkanRenderer(this, m_fileName);
+}
+
+VulkanRenderer::VulkanRenderer(QVulkanWindow *w, const QString &fileName)
+    : m_window(w), m_fileName(fileName)
 {
 }
 
@@ -444,7 +449,7 @@ void VulkanRenderer::initResources()
         qFatal("Failed to create sampler: %d", err);
 
     // Texture.
-    if (!createTexture(QStringLiteral(":/qt256.png")))
+    if (!createTexture(m_fileName))
         qFatal("Failed to create texture");
 
     // Set up descriptor set and its layout.
