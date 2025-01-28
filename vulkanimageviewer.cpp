@@ -66,18 +66,17 @@ VulkanRenderer::VulkanRenderer(QVulkanWindow *w, const QString &fileName)
 }
 
 void VulkanRenderer::setScale(const float scale) {  m_scale = scale; }
-void VulkanRenderer::setPanning(const float panX, const float panY) {  m_panX = panX; m_panY = panY; }
-
+void VulkanRenderer::setLocation(const float locX, const float locY) {  m_locX = locX; m_locY = locY; }
 
 // Update the projection matrix based on the current zoom factor
 void VulkanWindow::updateProjectionMatrix()
 {
     if (m_renderer) {
         m_renderer->setScale(m_zoomFactor); // Use the setter to update the projection matrix
-        m_renderer->setPanning(m_panX, m_panY);
+        m_renderer->setLocation(m_locX, m_locY);
     }
     qDebug() << "Zoom Factor Updated:" << m_zoomFactor;
-    qDebug() << "Panning Updated:" << m_panX << ", " << m_panY;
+    qDebug() << "Location Updated:" << m_locX << ", " << m_locY;
 }
 
 // Handle key press events
@@ -107,11 +106,16 @@ void VulkanWindow::wheelEvent(QWheelEvent *event)
 
         // Cap the zoom factor to avoid extreme zoom levels
         m_zoomFactor = qBound(0.1f, m_zoomFactor, 10.0f);
-
-        updateProjectionMatrix(); // Update the projection matrix
     } else {
-        QVulkanWindow::wheelEvent(event); // Pass the event to the base class
+        // Get the vertical and horizontal scroll delta
+        float deltaX = event->angleDelta().x() / 120.0f; // Divide by 120 to convert the delta to steps
+        float deltaY = event->angleDelta().y() / 120.0f;
+
+        // Apply the scroll deltas to the pan values
+        m_locX += deltaX * 0.1f; // Scale factor for horizontal scroll
+        m_locY -= deltaY * 0.1f; // Scale factor for vertical scroll (reverse Y-axis)
     }
+    updateProjectionMatrix(); // Update the projection matrix
 }
 
 void VulkanWindow::mousePressEvent(QMouseEvent *event)
@@ -128,8 +132,8 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent *event)
     if (m_isPanning) {
         // Calculate the difference in position
         QPoint delta = event->pos() - m_lastMousePos;
-        m_panX += delta.x() * 0.01f; // Pan scale factor
-        m_panY -= delta.y() * 0.01f; // Reverse Y-axis to match the window coordinates
+        m_locX += delta.x() * 0.01f; // Pan scale factor
+        m_locY -= delta.y() * 0.01f; // Reverse Y-axis to match the window coordinates
 
         // Update the last mouse position
         m_lastMousePos = event->pos();
@@ -868,7 +872,7 @@ void VulkanRenderer::startNextFrame()
         qFatal("Failed to map memory: %d", err);
     QMatrix4x4 m = m_proj;
     m.scale(m_scale);
-    m.translate(m_panX, m_panY);
+    m.translate(m_locX, m_locY);
     memcpy(p, m.constData(), 16 * sizeof(float));
     m_devFuncs->vkUnmapMemory(dev, m_bufMem);
 
