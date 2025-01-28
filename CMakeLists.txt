@@ -1,7 +1,7 @@
-# Generated from hellovulkantexture.pro.
+# Generated from vulkanimageviewer.pro.
 
 cmake_minimum_required(VERSION 3.16)
-project(hellovulkantexture LANGUAGES CXX)
+project(vulkanimageviewer LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -9,26 +9,20 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-if(NOT DEFINED INSTALL_EXAMPLESDIR)
-  set(INSTALL_EXAMPLESDIR "examples")
-endif()
-
-set(INSTALL_EXAMPLEDIR "${INSTALL_EXAMPLESDIR}/vulkan/hellovulkantexture")
-
 find_package(Qt6 COMPONENTS Core)
 find_package(Qt6 COMPONENTS Gui)
 find_package(Qt6 COMPONENTS Widgets)
 
 
-qt_add_executable(hellovulkantexture
-    hellovulkantexture.cpp hellovulkantexture.h
+qt_add_executable(vulkanimageviewer
+    vulkanimageviewer.cpp vulkanimageviewer.h
     main.cpp
 )
-set_target_properties(hellovulkantexture PROPERTIES
+set_target_properties(vulkanimageviewer PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
 )
-target_link_libraries(hellovulkantexture PUBLIC
+target_link_libraries(vulkanimageviewer PUBLIC
     Qt::Core
     Qt::Gui
     Qt::Widgets
@@ -36,21 +30,15 @@ target_link_libraries(hellovulkantexture PUBLIC
 
 
 # Resources:
-set(hellovulkantexture_resource_files
-    "qt256.png"
+set(vulkanimageviewer_resource_files
     "texture_frag.spv"
     "texture_vert.spv"
 )
 
-qt6_add_resources(hellovulkantexture "hellovulkantexture"
+qt6_add_resources(vulkanimageviewer "vulkanimageviewer"
     PREFIX
         "/"
     FILES
-        ${hellovulkantexture_resource_files}
+        ${vulkanimageviewer_resource_files}
 )
 
-install(TARGETS hellovulkantexture
-    RUNTIME DESTINATION "${INSTALL_EXAMPLEDIR}"
-    BUNDLE DESTINATION "${INSTALL_EXAMPLEDIR}"
-    LIBRARY DESTINATION "${INSTALL_EXAMPLEDIR}"
-)
