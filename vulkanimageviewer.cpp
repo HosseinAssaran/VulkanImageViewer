@@ -75,8 +75,8 @@ void VulkanWindow::updateProjectionMatrix()
         m_renderer->setScale(m_zoomFactor); // Use the setter to update the projection matrix
         m_renderer->setLocation(m_locX, m_locY);
     }
-    qDebug() << "Zoom Factor Updated:" << m_zoomFactor;
-    qDebug() << "Location Updated:" << m_locX << ", " << m_locY;
+    qDebug() << "Zoom Factor Updated: %" << m_zoomFactor * 100;
+    qDebug() << "Location Updated:" << m_locX << "," << m_locY;
 }
 
 // Handle key press events
@@ -105,7 +105,7 @@ void VulkanWindow::wheelEvent(QWheelEvent *event)
         m_zoomFactor += (delta > 0 ? m_zoomStep : -m_zoomStep);
 
         // Cap the zoom factor to avoid extreme zoom levels
-        m_zoomFactor = qBound(0.1f, m_zoomFactor, 10.0f);
+        m_zoomFactor = qBound(0.1f, m_zoomFactor, 16.0f);
     } else {
         // Get the vertical and horizontal scroll delta
         float deltaX = event->angleDelta().x() / 120.0f; // Divide by 120 to convert the delta to steps
