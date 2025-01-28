@@ -127,7 +127,8 @@ void VulkanWindow::wheelEvent(QWheelEvent *event)
 {
     if (m_ctrlPressed) { // Check if Ctrl is held
         const float delta = event->angleDelta().y(); // Get scroll amount
-        m_zoomFactor += (delta > 0 ? m_zoomStep : -m_zoomStep);
+        m_zoomStep = (m_zoomFactor > 1.0 || (m_zoomFactor == 1.0 && delta > 0)) ? 1.0f : 0.1f;
+        m_zoomFactor += m_zoomStep * (delta > 0 ? 1 : -1);
 
         // Cap the zoom factor to avoid extreme zoom levels
         m_zoomFactor = qBound(0.1f, m_zoomFactor, 16.0f);
