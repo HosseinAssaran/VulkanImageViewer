@@ -95,6 +95,7 @@ private:
     VkPipeline m_pipeline = VK_NULL_HANDLE;
 
     VkSampler m_sampler = VK_NULL_HANDLE;
+    VkSampler m_samplerLinear = VK_NULL_HANDLE;
     VkImage m_texImage = VK_NULL_HANDLE;
     VkDeviceMemory m_texMem = VK_NULL_HANDLE;
     bool m_texLayoutPending = false;

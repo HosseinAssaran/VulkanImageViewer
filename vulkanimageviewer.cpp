@@ -557,9 +557,18 @@ void VulkanRenderer::initResources()
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     samplerInfo.maxAnisotropy = 1.0f;
+
     err = m_devFuncs->vkCreateSampler(dev, &samplerInfo, nullptr, &m_sampler);
     if (err != VK_SUCCESS)
         qFatal("Failed to create sampler: %d", err);
+
+    VkSamplerCreateInfo linearSamplerInfo = samplerInfo;
+    linearSamplerInfo.magFilter = VK_FILTER_LINEAR;  // Magnification filter (zoom in)
+    linearSamplerInfo.minFilter = VK_FILTER_LINEAR;  // Minification filter (zoom out)
+
+    err = m_devFuncs->vkCreateSampler(m_window->device(), &linearSamplerInfo, nullptr, &m_samplerLinear);
+    if (err != VK_SUCCESS)
+        qFatal("Failed to create linear sampler: %d", err);
 
     // Texture.
     if (!createTexture(m_fileName))
@@ -867,6 +876,29 @@ void VulkanRenderer::startNextFrame()
     VkDevice dev = m_window->device();
     VkCommandBuffer cb = m_window->currentCommandBuffer();
     const QSize sz = m_window->swapChainImageSize();
+
+    VkSampler currentSampler = (m_scale >= 1.0f) ? m_sampler : m_samplerLinear;
+
+    VkDescriptorImageInfo descImageInfo = {
+        currentSampler,
+        m_texView,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    };
+
+    VkWriteDescriptorSet descWrite = {
+        VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        nullptr,
+        m_descSet[m_window->currentFrame()],
+        1,  // binding
+        0,  // arrayElement
+        1,  // descriptorCount
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        &descImageInfo,
+        nullptr,
+        nullptr
+    };
+
+    m_devFuncs->vkUpdateDescriptorSets(dev, 1, &descWrite, 0, nullptr);
 
     // Add the necessary barriers and do the host-linear -> device-optimal copy, if not yet done.
     ensureTexture();
