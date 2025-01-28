@@ -1,0 +1,68 @@
+# Ignore build directories
+build/
+Build/
+cmake-build-*/  # For CMake-generated builds
+*_build/
+
+# Ignore Qt Creator files
+*.pro.user
+*.pro.user.*
+*.qbs.user
+*.qbs.user.*
+*.creator.*
+*.autosave
+*.qmlc
+*.jsc
+.qtc_clangd/
+.qt/
+
+# Ignore CMake generated files
+CMakeLists.txt.user
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+install_manifest.txt
+
+# Ignore object files and binaries
+*.obj
+*.o
+*.so
+*.dll
+*.dylib
+*.lib
+*.a
+*.exe
+*.out
+*.app
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
+*.iml
+
+# Ignore logs and temporary files
+*.log
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Ignore Vulkan validation layers cache (if applicable)
+.vulkan_sdk/
+.cache/
+
+# Ignore compiled resources
+*.qrc.*
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+
+# Ignore temporary image viewer project output
+*.bmp.temp
+*.bmp.cache
+
+# Ignore additional system files
+.DS_Store
+Thumbs.db
+*.~lock.*
