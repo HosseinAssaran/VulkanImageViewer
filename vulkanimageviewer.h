@@ -67,7 +67,7 @@ public:
     void startNextFrame() override;
 
     void setScale(const float scale); // Add this setter
-    void setPanning(const float panX, const float panY);
+    void setLocation(const float locX, const float locY);
 
 private:
     QString m_fileName;  // Store file name
@@ -108,8 +108,8 @@ private:
     QMatrix4x4 m_proj;
     float m_rotation = 0.0f;
     float m_scale = 1.0f;
-    float m_panX = 0.0f;
-    float m_panY = 0.0f;
+    float m_locX = 0.0f;
+    float m_locY = 0.0f;
 };
 
 class VulkanWindow : public QVulkanWindow
@@ -140,7 +140,9 @@ private:
     // For panning
     bool m_isPanning = false;
     QPoint m_lastMousePos;
-    float m_panX = 0.0f, m_panY = 0.0f;
+
+    //For panning and scrolling
+    float m_locX = 0.0f, m_locY = 0.0f;
 
     void updateProjectionMatrix(); // Update the projection matrix based on zoom
 };
