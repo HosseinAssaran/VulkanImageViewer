@@ -23,8 +23,8 @@
 **
 ****************************************************************************/
 
-#ifndef HELLOVULKANTEXTURE_H
-#define HELLOVULKANTEXTURE_H
+#ifndef VULKANIMAGEVIEWER_H
+#define VULKANIMAGEVIEWER_H
 
 #include <QVulkanWindow>
 #include <QImage>
@@ -40,6 +40,8 @@ public:
     void releaseResources() override;
 
     void startNextFrame() override;
+
+    void setScale(const float scale); // Add this setter
 
 private:
     QString m_fileName;  // Store file name
@@ -79,6 +81,7 @@ private:
 
     QMatrix4x4 m_proj;
     float m_rotation = 0.0f;
+    float m_scale = 1.0f;
 };
 
 class VulkanWindow : public QVulkanWindow
@@ -86,8 +89,23 @@ class VulkanWindow : public QVulkanWindow
 public:
     VulkanWindow(const QString &fileName);  // Constructor to accept fileName
     QVulkanWindowRenderer *createRenderer() override;
+
+protected:
+    // Input event handlers for zoom functionality
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
+    void wheelEvent(QWheelEvent *event) override;
+
 private:
     QString m_fileName;  // Store file name in the VulkanWindow class
+    VulkanRenderer *m_renderer = nullptr; // Pointer to the renderer instance
+
+    // Zoom variables
+    bool m_ctrlPressed = false;   // Track if Ctrl is pressed
+    float m_zoomFactor = 1.0f;    // Current zoom factor
+    const float m_zoomStep = 0.1f; // Zoom increment step
+
+    void updateProjectionMatrix(); // Update the projection matrix based on zoom
 };
 
-#endif // HELLOVULKANTEXTURE_H
+#endif // VULKANIMAGEVIEWER_H

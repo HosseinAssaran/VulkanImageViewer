@@ -23,11 +23,12 @@
 **
 ****************************************************************************/
 
-#include "hellovulkantexture.h"
+#include "vulkanimageviewer.h"
 #include <QVulkanFunctions>
 #include <QCoreApplication>
 #include <QFile>
-
+#include <QWheelEvent>
+#include <QKeyEvent>
 // Use a triangle strip to get a quad.
 //
 // Note that the vertex data and the projection matrix assume OpenGL. With
@@ -56,12 +57,57 @@ VulkanWindow::VulkanWindow(const QString &fileName) : m_fileName(fileName)
 
 QVulkanWindowRenderer *VulkanWindow::createRenderer()
 {
-    return new VulkanRenderer(this, m_fileName);
-}
+    m_renderer = new VulkanRenderer(this, m_fileName); // Store the renderer instance
+    return m_renderer;}
 
 VulkanRenderer::VulkanRenderer(QVulkanWindow *w, const QString &fileName)
     : m_window(w), m_fileName(fileName)
 {
+}
+
+void VulkanRenderer::setScale(const float scale) {  m_scale = scale; }
+
+// Update the projection matrix based on the current zoom factor
+void VulkanWindow::updateProjectionMatrix()
+{
+    if (m_renderer) {
+        m_renderer->setScale(m_zoomFactor); // Use the setter to update the projection matrix
+    }
+    qDebug() << "Zoom Factor Updated:" << m_zoomFactor;
+}
+
+// Handle key press events
+void VulkanWindow::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Control) {
+        m_ctrlPressed = true; // Set flag when Ctrl is pressed
+    }
+    QVulkanWindow::keyPressEvent(event); // Pass the event to the base class
+}
+
+// Handle key release events
+void VulkanWindow::keyReleaseEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Control) {
+        m_ctrlPressed = false; // Reset flag when Ctrl is released
+    }
+    QVulkanWindow::keyReleaseEvent(event); // Pass the event to the base class
+}
+
+// Handle mouse wheel events for zooming
+void VulkanWindow::wheelEvent(QWheelEvent *event)
+{
+    if (m_ctrlPressed) { // Check if Ctrl is held
+        const float delta = event->angleDelta().y(); // Get scroll amount
+        m_zoomFactor += (delta > 0 ? m_zoomStep : -m_zoomStep);
+
+        // Cap the zoom factor to avoid extreme zoom levels
+        m_zoomFactor = qBound(0.1f, m_zoomFactor, 10.0f);
+
+        updateProjectionMatrix(); // Update the projection matrix
+    } else {
+        QVulkanWindow::wheelEvent(event); // Pass the event to the base class
+    }
 }
 
 VkShaderModule VulkanRenderer::createShader(const QString &name)
@@ -783,12 +829,9 @@ void VulkanRenderer::startNextFrame()
     if (err != VK_SUCCESS)
         qFatal("Failed to map memory: %d", err);
     QMatrix4x4 m = m_proj;
-    m.rotate(m_rotation, 0, 0, 1);
+    m.scale(m_scale);
     memcpy(p, m.constData(), 16 * sizeof(float));
     m_devFuncs->vkUnmapMemory(dev, m_bufMem);
-
-    // Not exactly a real animation system, just advance on every frame for now.
-    m_rotation += 1.0f;
 
     m_devFuncs->vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
     m_devFuncs->vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
