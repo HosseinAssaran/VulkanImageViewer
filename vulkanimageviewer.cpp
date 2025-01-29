@@ -259,6 +259,7 @@ bool VulkanRenderer::createTexture(const QString &name)
     }
 
     m_texSize = img.size();
+    updateVertexData();
 
     return true;
 }
@@ -352,6 +353,32 @@ bool VulkanRenderer::writeLinearImage(const QImage &img, VkImage image, VkDevice
 
     m_devFuncs->vkUnmapMemory(dev, memory);
     return true;
+}
+
+void VulkanRenderer::updateVertexData()
+{
+    // Calculate aspect ratio
+    float aspectRatio = float(m_texSize.width()) / float(m_texSize.height());
+
+    // Create vertex data with proper aspect ratio
+    float vertexData[] = { // Y up, front = CW
+        // x, y, z, u, v
+        -aspectRatio, -1, 0, 0, 1,  // bottom-left
+        -aspectRatio,  1, 0, 0, 0,  // top-left
+        aspectRatio, -1, 0, 1, 1,  // bottom-right
+        aspectRatio,  1, 0, 1, 0   // top-right
+    };
+
+    // Map the buffer and update the vertex data
+    quint8 *p;
+    VkResult err = m_devFuncs->vkMapMemory(m_window->device(), m_bufMem, 0,
+                                           sizeof(vertexData), 0,
+                                           reinterpret_cast<void **>(&p));
+    if (err != VK_SUCCESS)
+        qFatal("Failed to map memory: %d", err);
+
+    memcpy(p, vertexData, sizeof(vertexData));
+    m_devFuncs->vkUnmapMemory(m_window->device(), m_bufMem);
 }
 
 void VulkanRenderer::ensureTexture()
@@ -903,9 +930,19 @@ void VulkanRenderer::startNextFrame()
             UNIFORM_DATA_SIZE, 0, reinterpret_cast<void **>(&p));
     if (err != VK_SUCCESS)
         qFatal("Failed to map memory: %d", err);
+
+    // Calculate the initial scale to show the image at its actual size
+    float imageAspect = m_texSize.width() / float(m_texSize.height());
+    float windowAspect = sz.width() / float(sz.height());
+
     QMatrix4x4 m = m_proj;
     m.scale(m_scale);
     m.translate(m_locX, m_locY);
+
+    // Adjust the scale to maintain actual pixels
+    float adjustedScale = 2.0f / sz.height(); // Base scale in OpenGL coordinates
+    m.scale(adjustedScale * m_texSize.height()); // Scale to actual pixel size
+
     memcpy(p, m.constData(), 16 * sizeof(float));
     m_devFuncs->vkUnmapMemory(dev, m_bufMem);
 
