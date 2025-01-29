@@ -77,6 +77,7 @@ private:
     bool createTextureImage(const QSize &size, VkImage *image, VkDeviceMemory *mem,
                             VkImageTiling tiling, VkImageUsageFlags usage, uint32_t memIndex);
     bool writeLinearImage(const QImage &img, VkImage image, VkDeviceMemory memory);
+    void updateVertexData();
     void ensureTexture();
 
     QVulkanWindow *m_window;
