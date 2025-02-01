@@ -101,12 +101,28 @@ void VulkanWindow::keyReleaseEvent(QKeyEvent *event)
 void VulkanWindow::wheelEvent(QWheelEvent *event)
 {
     if (m_ctrlPressed) { // Check if Ctrl is held
-        const float delta = event->angleDelta().y(); // Get scroll amount
+        float delta = event->angleDelta().y(); // Scroll direction
+        QPoint mousePos = event->position().toPoint();
+        float prevZoom = m_zoomFactor; // Store previous zoom factor
+
+        float mouseMappedX = mousePos.x() - width() / 2; // Mapping x to -width/2 to width/2
+        float mouseMappedY = -mousePos.y() +  height() /  2; // Mapping y to -height/2 to height/2
+
+        // Convert screen coordinates to world coordinates before zoom
+        float worldX = (mouseMappedX - m_locX) / prevZoom;
+        float worldY = (mouseMappedY - m_locY) / prevZoom;
+
         m_zoomStep = (m_zoomFactor > 1.0 || (m_zoomFactor == 1.0 && delta > 0)) ? 1.0f : 0.1f;
         m_zoomFactor += m_zoomStep * (delta > 0 ? 1 : -1);
+        m_zoomFactor = qBound(0.1f, m_zoomFactor, 16.0f); // Limit zoom range
 
-        // Cap the zoom factor to avoid extreme zoom levels
-        m_zoomFactor = qBound(0.1f, m_zoomFactor, 16.0f);
+        // Calculate new screen position after zoom
+        float newScreenX = worldX * m_zoomFactor + m_locX;
+        float newScreenY = worldY * m_zoomFactor + m_locY;
+
+        // Adjust location to maintain mouse position
+        m_locX += mouseMappedX - newScreenX;
+        m_locY += mouseMappedY - newScreenY;
     } else {
         // Get the vertical and horizontal scroll delta
         float deltaX = event->angleDelta().x() / 120.0f; // Divide by 120 to convert the delta to steps
@@ -951,8 +967,8 @@ void VulkanRenderer::startNextFrame()
 
     QMatrix4x4 m = m_proj;
 
-    m.scale(m_scale);
     m.translate(m_locX, m_locY);
+    m.scale(m_scale);
 
     qDebug() << "Image dimensions:" << m_texSize.width() << "x" << m_texSize.height();
     qDebug() << "Scale factor:" << m_scale;
