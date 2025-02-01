@@ -138,8 +138,8 @@ void VulkanWindow::wheelEvent(QWheelEvent *event)
         float deltaY = event->angleDelta().y() / 120.0f;
 
         // Apply the scroll deltas to the pan values
-        m_locX += deltaX * 0.1f; // Scale factor for horizontal scroll
-        m_locY -= deltaY * 0.1f; // Scale factor for vertical scroll (reverse Y-axis)
+        m_locX += deltaX * 10.0f; // Scale factor for horizontal scroll
+        m_locY -= deltaY * 10.0f; // Scale factor for vertical scroll (reverse Y-axis)
     }
     updateProjectionMatrix(); // Update the projection matrix
 }
@@ -158,8 +158,8 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent *event)
     if (m_isPanning) {
         // Calculate the difference in position
         QPoint delta = event->pos() - m_lastMousePos;
-        m_locX += delta.x() * 0.01f; // Pan scale factor
-        m_locY -= delta.y() * 0.01f; // Reverse Y-axis to match the window coordinates
+        m_locX += delta.x() * 1.0f; // Pan scale factor
+        m_locY -= delta.y() * 1.0f; // Reverse Y-axis to match the window coordinates
 
         // Update the last mouse position
         m_lastMousePos = event->pos();
