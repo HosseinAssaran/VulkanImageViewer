@@ -382,19 +382,20 @@ bool VulkanRenderer::writeLinearImage(const QImage &img, VkImage image, VkDevice
 
 void VulkanRenderer::updateVertexData()
 {
-    // Calculate aspect ratio
-    float aspectRatio = float(m_texSize.width()) / float(m_texSize.height());
+    // Define vertices to match exact pixel dimensions
+    float halfWidth = m_texSize.width() / 2.0f;
+    float halfHeight = m_texSize.height() / 2.0f;
 
-    // Create vertex data with proper aspect ratio
-    float vertexData[] = { // Y up, front = CW
+    // Create vertex data using exact pixel dimensions
+    float vertexData[] = {
         // x, y, z, u, v
-        -aspectRatio, -1, 0, 0, 1,  // bottom-left
-        -aspectRatio,  1, 0, 0, 0,  // top-left
-        aspectRatio, -1, 0, 1, 1,  // bottom-right
-        aspectRatio,  1, 0, 1, 0   // top-right
+        -halfWidth, -halfHeight, 0, 0, 1,  // bottom-left
+        -halfWidth,  halfHeight, 0, 0, 0,  // top-left
+        halfWidth, -halfHeight, 0, 1, 1,  // bottom-right
+        halfWidth,  halfHeight, 0, 1, 0   // top-right
     };
 
-    // Map the buffer and update the vertex data
+    // Map and copy the vertex data
     quint8 *p;
     VkResult err = m_devFuncs->vkMapMemory(m_window->device(), m_bufMem, 0,
                                            sizeof(vertexData), 0,
@@ -404,6 +405,8 @@ void VulkanRenderer::updateVertexData()
 
     memcpy(p, vertexData, sizeof(vertexData));
     m_devFuncs->vkUnmapMemory(m_window->device(), m_bufMem);
+
+    qDebug() << "Updated vertex data with dimensions:" << m_texSize.width() << "x" << m_texSize.height();
 }
 
 void VulkanRenderer::ensureTexture()
@@ -815,11 +818,22 @@ void VulkanRenderer::initSwapChainResources()
 {
     qDebug("initSwapChainResources");
 
-    // Projection matrix
-    m_proj = m_window->clipCorrectionMatrix(); // adjust for Vulkan-OpenGL clip space differences
+    // Start with identity matrix
+    m_proj.setToIdentity();
+
+    // Apply Vulkan clip space correction
+    m_proj = m_window->clipCorrectionMatrix();
+
+    // Get window size
     const QSize sz = m_window->swapChainImageSize();
-    m_proj.perspective(45.0f, sz.width() / (float) sz.height(), 0.01f, 100.0f);
-    m_proj.translate(0, 0, -4);
+
+    // Set up orthographic projection that maps directly to pixels
+    float left = -sz.width() / 2.0f;
+    float right = sz.width() / 2.0f;
+    float bottom = -sz.height() / 2.0f;
+    float top = sz.height() / 2.0f;
+
+    m_proj.ortho(left, right, bottom, top, -1.0f, 1.0f);
 }
 
 void VulkanRenderer::releaseSwapChainResources()
@@ -961,12 +975,13 @@ void VulkanRenderer::startNextFrame()
     float windowAspect = sz.width() / float(sz.height());
 
     QMatrix4x4 m = m_proj;
+
     m.scale(m_scale);
     m.translate(m_locX, m_locY);
 
-    // Adjust the scale to maintain actual pixels
-    float adjustedScale = 2.0f / sz.height(); // Base scale in OpenGL coordinates
-    m.scale(adjustedScale * m_texSize.height()); // Scale to actual pixel size
+    qDebug() << "Image dimensions:" << m_texSize.width() << "x" << m_texSize.height();
+    qDebug() << "Scale factor:" << m_scale;
+    qDebug() << "Translation:" << m_locX << m_locY;
 
     memcpy(p, m.constData(), 16 * sizeof(float));
     m_devFuncs->vkUnmapMemory(dev, m_bufMem);
