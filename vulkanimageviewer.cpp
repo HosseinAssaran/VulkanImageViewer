@@ -868,6 +868,11 @@ void VulkanRenderer::releaseResources()
         m_sampler = VK_NULL_HANDLE;
     }
 
+    if (m_samplerLinear) {
+        m_devFuncs->vkDestroySampler(dev, m_samplerLinear, nullptr);
+        m_samplerLinear = VK_NULL_HANDLE;
+    }
+
     if (m_texStaging) {
         m_devFuncs->vkDestroyImage(dev, m_texStaging, nullptr);
         m_texStaging = VK_NULL_HANDLE;
