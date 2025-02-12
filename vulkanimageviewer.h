@@ -41,8 +41,15 @@ public:
 
     void startNextFrame() override;
 
-    void setScale(const float scale) noexcept; // Add this setter
-    void setLocation(const float locX, const float locY) noexcept;
+
+    inline void setScale(const float scale) noexcept {
+        m_scale = scale;
+    }
+
+    inline void setLocation(const float locX, const float locY) noexcept {
+        m_locX = locX;
+        m_locY = locY;
+    }
 
 private:
     QString m_fileName;  // Store file name

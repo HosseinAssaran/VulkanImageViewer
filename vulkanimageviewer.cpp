@@ -66,12 +66,6 @@ VulkanRenderer::VulkanRenderer(QVulkanWindow *w, const QString fileName)
 {
 }
 
-void VulkanRenderer::setScale(const float scale) noexcept {  m_scale = scale; }
-void VulkanRenderer::setLocation(const float locX, const float locY) noexcept {
-    m_locX = locX;
-    m_locY = locY;
-}
-
 // Update the projection matrix based on the current zoom factor
 void VulkanWindow::updateProjectionMatrix()
 {
