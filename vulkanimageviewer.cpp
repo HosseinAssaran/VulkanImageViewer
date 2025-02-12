@@ -57,25 +57,34 @@ VulkanWindow::VulkanWindow(const QString &fileName) : m_fileName(fileName)
 
 QVulkanWindowRenderer *VulkanWindow::createRenderer()
 {
-    m_renderer = new VulkanRenderer(this, m_fileName); // Store the renderer instance
-    return m_renderer;}
+    m_renderer = std::make_unique<VulkanRenderer>(this, m_fileName); // Store the renderer instance
+    return m_renderer.get();
+}
 
-VulkanRenderer::VulkanRenderer(QVulkanWindow *w, const QString &fileName)
-    : m_window(w), m_fileName(fileName)
+VulkanRenderer::VulkanRenderer(QVulkanWindow *w, const QString fileName)
+    : m_window(w), m_fileName(std::move(fileName))
 {
 }
 
-void VulkanRenderer::setScale(const float scale) {  m_scale = scale; }
-void VulkanRenderer::setLocation(const float locX, const float locY) {  m_locX = locX; m_locY = locY; }
+void VulkanRenderer::setScale(const float scale) noexcept {  m_scale = scale; }
+void VulkanRenderer::setLocation(const float locX, const float locY) noexcept {
+    m_locX = locX;
+    m_locY = locY;
+}
 
 // Update the projection matrix based on the current zoom factor
 void VulkanWindow::updateProjectionMatrix()
 {
-    if (m_renderer) {
-        m_renderer->setScale(m_zoomFactor); // Use the setter to update the projection matrix
-        m_renderer->setLocation(m_locX, m_locY);
+    // Early return if `m_renderer` is null
+    if (!m_renderer) {
+        qWarning() << "VulkanWindow::updateProjectionMatrix() called, but m_renderer is null!";
+        return;
     }
-    qDebug() << "Zoom Factor Updated: %" << m_zoomFactor * 100;
+
+    m_renderer->setScale(m_zoomFactor);
+    m_renderer->setLocation(m_locX, m_locY);
+
+    qDebug() << "Zoom Factor Updated:" << (m_zoomFactor * 100) << "%";
     qDebug() << "Location Updated:" << m_locX << "," << m_locY;
 }
 
@@ -97,49 +106,59 @@ void VulkanWindow::keyReleaseEvent(QKeyEvent *event)
     QVulkanWindow::keyReleaseEvent(event); // Pass the event to the base class
 }
 
-// Handle mouse wheel events for zooming
 void VulkanWindow::wheelEvent(QWheelEvent *event)
 {
-    if (m_ctrlPressed) { // Check if Ctrl is held
-        float delta = event->angleDelta().y(); // Scroll direction
-        QPoint mousePos = event->position().toPoint();
-        float prevZoom = m_zoomFactor; // Store previous zoom factor
+    constexpr float minZoom = 0.1f;
+    constexpr float maxZoom = 16.0f;
+    constexpr float scrollFactor = 10.0f;
 
-        float mouseMappedX = mousePos.x() - width() / 2; // Mapping x to -width/2 to width/2
-        float mouseMappedY = -mousePos.y() +  height() /  2; // Mapping y to -height/2 to height/2
-
-        // Convert screen coordinates to world coordinates before zoom
-        float worldX = (mouseMappedX - m_locX) / prevZoom;
-        float worldY = (mouseMappedY - m_locY) / prevZoom;
-
-        m_zoomStep = (m_zoomFactor > 1.0 || (m_zoomFactor == 1.0 && delta > 0)) ? 1.0f : 0.1f;
-        m_zoomFactor += m_zoomStep * (delta > 0 ? 1 : -1);
-        m_zoomFactor = qBound(0.1f, m_zoomFactor, 16.0f); // Limit zoom range
-
-        // Calculate new screen position after zoom
-        float newScreenX = worldX * m_zoomFactor + m_locX;
-        float newScreenY = worldY * m_zoomFactor + m_locY;
-
-        // Adjust location to maintain mouse position
-        m_locX += mouseMappedX - newScreenX;
-        m_locY += mouseMappedY - newScreenY;
+    if (m_ctrlPressed) {
+        handleZomming(event);
     } else {
-        // Get the vertical and horizontal scroll delta
-        float deltaX = event->angleDelta().x() / 120.0f; // Divide by 120 to convert the delta to steps
-        float deltaY = event->angleDelta().y() / 120.0f;
-
-        // Apply the scroll deltas to the pan values
-        m_locX += deltaX * 10.0f; // Scale factor for horizontal scroll
-        m_locY -= deltaY * 10.0f; // Scale factor for vertical scroll (reverse Y-axis)
+        handleScrolling(event, scrollFactor);
     }
-    updateProjectionMatrix(); // Update the projection matrix
+
+    updateProjectionMatrix(); // Refresh projection
+}
+
+// Update zoom based on mouse wheel event
+void VulkanWindow::handleZomming(QWheelEvent *event)
+{
+    float delta = event->angleDelta().y(); // Scroll direction
+    QPoint mousePos = event->position().toPoint();
+
+    // Map screen coordinates to center-relative coordinates
+    float mouseMappedX = mousePos.x() - width() / 2.0f;
+    float mouseMappedY = -mousePos.y() + height() / 2.0f;
+
+    // Convert to world coordinates before zoom
+    float worldX = (mouseMappedX - m_locX) / m_zoomFactor;
+    float worldY = (mouseMappedY - m_locY) / m_zoomFactor;
+
+    // Adjust zoom step dynamically
+    float zoomStep = (m_zoomFactor > 1.0f || (m_zoomFactor == 1.0f && delta > 0)) ? 1.0f : 0.1f;
+    m_zoomFactor = qBound(0.1f, m_zoomFactor + zoomStep * (delta > 0 ? 1 : -1), 16.0f);
+
+    // Compute new screen position and adjust location to maintain cursor position
+    m_locX += mouseMappedX - (worldX * m_zoomFactor + m_locX);
+    m_locY += mouseMappedY - (worldY * m_zoomFactor + m_locY);
+}
+
+// Handle panning when Ctrl is not pressed
+void VulkanWindow::handleScrolling(QWheelEvent *event, float scrollFactor)
+{
+    float deltaX = event->angleDelta().x() / 120.0f; // Normalize scroll delta
+    float deltaY = event->angleDelta().y() / 120.0f;
+
+    // Apply scaled pan values (inverted Y-axis for natural movement)
+    m_locX += deltaX * scrollFactor;
+    m_locY -= deltaY * scrollFactor;
 }
 
 void VulkanWindow::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
-        m_isPanning = true;
-        m_lastMousePos = event->pos();
+        startPanning(event->pos());
     }
     QVulkanWindow::mousePressEvent(event); // Ensure the base class functionality is also called
 }
@@ -147,16 +166,7 @@ void VulkanWindow::mousePressEvent(QMouseEvent *event)
 void VulkanWindow::mouseMoveEvent(QMouseEvent *event)
 {
     if (m_isPanning) {
-        // Calculate the difference in position
-        QPoint delta = event->pos() - m_lastMousePos;
-        m_locX += delta.x() * 1.0f; // Pan scale factor
-        m_locY -= delta.y() * 1.0f; // Reverse Y-axis to match the window coordinates
-
-        // Update the last mouse position
-        m_lastMousePos = event->pos();
-
-        // Update the projection matrix with the new pan offsets
-        updateProjectionMatrix();
+        handlePanning(event->pos());
     }
     QVulkanWindow::mouseMoveEvent(event);
 }
@@ -164,9 +174,22 @@ void VulkanWindow::mouseMoveEvent(QMouseEvent *event)
 void VulkanWindow::mouseReleaseEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
-        m_isPanning = false;
+        stopPanning();
     }
     QVulkanWindow::mouseReleaseEvent(event); // Ensure the base class functionality is also called
+}
+
+// Handle panning logic
+void VulkanWindow::handlePanning(const QPoint &mousePos)
+{
+    QPoint delta = mousePos - m_lastMousePos;
+
+    // Apply panning with scaling (1.0f can be adjusted if needed)
+    m_locX += delta.x();
+    m_locY -= delta.y(); // Reverse Y-axis for correct movement
+
+    m_lastMousePos = mousePos; // Update last known position
+    updateProjectionMatrix();  // Refresh projection
 }
 
 VkShaderModule VulkanRenderer::createShader(const QString &name)
@@ -177,15 +200,19 @@ VkShaderModule VulkanRenderer::createShader(const QString &name)
         return VK_NULL_HANDLE;
     }
     QByteArray blob = file.readAll();
-    file.close();
+    if (blob.isEmpty()) {
+        qWarning("Failed to read data from shader file: %s", qPrintable(name));
+        return VK_NULL_HANDLE;  // No data read from file
+    }
 
-    VkShaderModuleCreateInfo shaderInfo;
-    memset(&shaderInfo, 0, sizeof(shaderInfo));
+    VkShaderModuleCreateInfo shaderInfo = {};
     shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    shaderInfo.codeSize = blob.size();
+    shaderInfo.codeSize = static_cast<size_t>(blob.size());
     shaderInfo.pCode = reinterpret_cast<const uint32_t *>(blob.constData());
+
     VkShaderModule shaderModule;
     VkResult err = m_devFuncs->vkCreateShaderModule(m_window->device(), &shaderInfo, nullptr, &shaderModule);
+
     if (err != VK_SUCCESS) {
         qWarning("Failed to create shader module: %d", err);
         return VK_NULL_HANDLE;

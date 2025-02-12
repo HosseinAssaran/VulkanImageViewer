@@ -32,7 +32,7 @@
 class VulkanRenderer : public QVulkanWindowRenderer
 {
 public:
-    VulkanRenderer(QVulkanWindow *w, const QString &fileName);
+    VulkanRenderer(QVulkanWindow *w, const QString fileName);
 
     void initResources() override;
     void initSwapChainResources() override;
@@ -41,8 +41,8 @@ public:
 
     void startNextFrame() override;
 
-    void setScale(const float scale); // Add this setter
-    void setLocation(const float locX, const float locY);
+    void setScale(const float scale) noexcept; // Add this setter
+    void setLocation(const float locX, const float locY) noexcept;
 
 private:
     QString m_fileName;  // Store file name
@@ -106,8 +106,22 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
 
 private:
+    inline void startPanning(const QPoint &mousePos) {
+        m_isPanning = true;
+        m_lastMousePos = mousePos;
+    }
+
+    inline void stopPanning() {
+        m_isPanning = false;
+    }
+
+    void handlePanning(const QPoint &mousePos);
+    void handleZomming(QWheelEvent *event);
+    void handleScrolling(QWheelEvent *event, float scrollFactor);
+    void updateProjectionMatrix(); // Update the projection matrix based on zoom
+
     QString m_fileName;  // Store file name in the VulkanWindow class
-    VulkanRenderer *m_renderer = nullptr; // Pointer to the renderer instance
+    std::unique_ptr<VulkanRenderer> m_renderer = nullptr; // Pointer to the renderer instance
 
     // Zoom variables
     bool m_ctrlPressed = false;   // Track if Ctrl is pressed
@@ -120,8 +134,6 @@ private:
 
     //For panning and scrolling
     float m_locX = 0.0f, m_locY = 0.0f;
-
-    void updateProjectionMatrix(); // Update the projection matrix based on zoom
 };
 
 #endif // VULKANIMAGEVIEWER_H
