@@ -21,6 +21,9 @@ jobs:
           sudo apt update
           sudo apt install -y qt6-base-dev qt6-tools-dev qt6-tools-dev-tools vulkan-tools libvulkan-dev mesa-vulkan-drivers
 
+      - name: Set Library Path
+        run: echo "LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/qt6/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
       - name: Configure CMake
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
@@ -28,7 +31,7 @@ jobs:
         run: cmake --build build --config Release
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4  # Updated version
+        uses: actions/upload-artifact@v4
         with:
           name: VulkanQtBuild
           path: build/
